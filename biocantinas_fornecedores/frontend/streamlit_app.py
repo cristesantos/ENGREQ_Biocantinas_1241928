@@ -1,14 +1,24 @@
 import streamlit as st
 import requests
 from datetime import date
-
-# API_URL = "http://localhost:8000"
-
 import threading
 import uvicorn
-from fastapi import FastAPI
 
-API_URL = FastAPI()
+from biocantinas_fornecedores.backend.app.main import app as fastapi_app
+
+API_URL = "http://127.0.0.1:8000"
+
+st.set_page_config(page_title="BioCantinas - Fornecedores")
+
+# Start FastAPI server once per Streamlit session
+def _start_api():
+    uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="info")
+
+if "api_thread_started" not in st.session_state:
+    st.session_state.api_thread = threading.Thread(target=_start_api, daemon=True)
+    st.session_state.api_thread.start()
+    st.session_state.api_thread_started = True
+    st.info("FastAPI iniciado em background na porta 8000")
 
 st.set_page_config(page_title="BioCantinas - Fornecedores")
 
@@ -105,8 +115,3 @@ elif papel == "Gestor":
                 f"Produto: {o['produto']} → ordem de fornecedores: "
                 f"{', '.join(map(str, o['fornecedores_ids']))}"
             )
-
-def start_api():
-    uvicorn.run(app_api, host="0.0.0.0", port=8000)
-
-threading.Thread(target=start_api, daemon=True).start()
