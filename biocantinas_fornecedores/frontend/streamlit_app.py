@@ -3,18 +3,35 @@ import requests
 from datetime import date
 import threading
 import uvicorn
-
-from biocantinas_fornecedores.backend.app.main import app as fastapi_app
+import sys
+from pathlib import Path
 
 API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(page_title="BioCantinas - Fornecedores")
 
-# Start FastAPI server once per Streamlit session
-def _start_api():
-    uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="info")
+# Tentar importar o app FastAPI localmente; se falhar, desativar servidor embebido
+fastapi_app = None
+try:
+    from biocantinas_fornecedores.backend.app.main import app as fastapi_app
+except ImportError:
+    # Em ambiente de deploy (ex: Streamlit Cloud), a estrutura é diferente
+    # Tentar adicionar o path pai ao sys.path e reimportar
+    try:
+        backend_path = Path(__file__).parent.parent / "backend"
+        if backend_path.exists():
+            sys.path.insert(0, str(backend_path.parent))
+            from biocantinas_fornecedores.backend.app.main import app as fastapi_app
+    except ImportError:
+        st.warning("⚠️ Servidor FastAPI embebido não disponível. Certifique-se que a API está a correr em http://127.0.0.1:8000")
+        fastapi_app = None
 
-if "api_thread_started" not in st.session_state:
+# Start FastAPI server once per Streamlit session (apenas se disponível localmente)
+def _start_api():
+    if fastapi_app:
+        uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="info")
+
+if fastapi_app and "api_thread_started" not in st.session_state:
     st.session_state.api_thread = threading.Thread(target=_start_api, daemon=True)
     st.session_state.api_thread.start()
     st.session_state.api_thread_started = True
@@ -113,7 +130,3 @@ elif papel == "Gestor":
                 f"Produto: {o['produto']} → ordem de fornecedores: "
                 f"{', '.join(map(str, o['fornecedores_ids']))}"
             )
-<<<<<<< HEAD
-=======
-
->>>>>>> 23402aad3e4400a02a03e9385dc392cbe0ae5bb8
