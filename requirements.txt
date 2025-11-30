@@ -41,6 +41,7 @@ smmap==5.0.2
 starlette==0.50.0
 streamlit==1.51.0
 tenacity==9.1.2
+threading
 toml==0.10.2
 tornado==6.5.2
 typing-extensions==4.15.0

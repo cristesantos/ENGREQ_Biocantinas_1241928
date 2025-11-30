@@ -2,7 +2,13 @@ import streamlit as st
 import requests
 from datetime import date
 
-API_URL = "http://localhost:8000"
+# API_URL = "http://localhost:8000"
+
+import threading
+import uvicorn
+from fastapi import FastAPI
+
+API_URL = FastAPI()
 
 st.set_page_config(page_title="BioCantinas - Fornecedores")
 
@@ -99,3 +105,8 @@ elif papel == "Gestor":
                 f"Produto: {o['produto']} → ordem de fornecedores: "
                 f"{', '.join(map(str, o['fornecedores_ids']))}"
             )
+
+def start_api():
+    uvicorn.run(app_api, host="0.0.0.0", port=8000)
+
+threading.Thread(target=start_api, daemon=True).start()
