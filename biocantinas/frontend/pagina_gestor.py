@@ -67,18 +67,28 @@ def pagina_gestor(API_URL):
     if ordens is None:
         st.info("Clique em 'Calcular ordem' para carregar ordens.")
     elif ordens:
-        # mapa id -> nome para apresentar os nomes dos agricultores
-        id_to_nome = {f['id']: f['nome'] for f in fornecedores}
+        # mapa id -> fornecedor para apresentar nomes e capacidades
+        id_to_fornecedor = {f['id']: f for f in fornecedores}
 
         produtos = sorted([o['produto'] for o in ordens], key=lambda s: s.lower())
         produto_sel = st.selectbox("Produto", options=produtos, key='produto_sel')
 
         ordem = next((o for o in ordens if o['produto'] == produto_sel), None)
         if ordem:
-            nomes = [id_to_nome.get(i, str(i)) for i in ordem['fornecedores_ids']]
             st.write("Lista de agricultores por ordem de inscrição:")
-            for idx, nome in enumerate(nomes, start=1):
-                st.write(f"{idx}. {nome}")
+            for idx, fid in enumerate(ordem['fornecedores_ids'], start=1):
+                forn = id_to_fornecedor.get(fid)
+                if forn:
+                    # procurar o produto dentro dos produtos do fornecedor (case-insensitive)
+                    capacidade = None
+                    for p in forn.get('produtos', []):
+                        if p.get('nome', '').lower() == produto_sel.lower():
+                            capacidade = p.get('capacidade')
+                            break
+                    cap_text = f"{capacidade} unidades" if capacidade is not None else "capacidade desconhecida"
+                    st.write(f"{idx}. {forn['nome']} — {cap_text}")
+                else:
+                    st.write(f"{idx}. {fid} — fornecedor não encontrado")
         else:
             st.info("Ordem não encontrada para o produto selecionado.")
 
