@@ -50,13 +50,40 @@ def pagina_gestor(API_URL):
         st.info("Ainda não há fornecedores.")
 
     st.subheader("Ordem de fornecimento por produto")
+
+    # Inicializar estado
+    if 'ordens' not in st.session_state:
+        st.session_state['ordens'] = None
+
     if st.button("Calcular ordem"):
         try:
-            ordens = get_ordem(API_URL)
-            for o in ordens:
-                st.write(
-                    f"Produto: {o['produto']} → ordem de fornecedores: "
-                    f"{', '.join(map(str, o['fornecedores_ids']))}"
-                )
+            st.session_state['ordens'] = get_ordem(API_URL)
         except requests.exceptions.HTTPError as e:
             st.error(f"Erro ao calcular ordem: {e.response.status_code} - {e.response.text}")
+            st.session_state['ordens'] = []
+
+    ordens = st.session_state.get('ordens')
+
+    if ordens is None:
+        st.info("Clique em 'Calcular ordem' para carregar ordens.")
+    elif ordens:
+        # mapa id -> nome para apresentar os nomes dos agricultores
+        id_to_nome = {f['id']: f['nome'] for f in fornecedores}
+
+        produtos = sorted([o['produto'] for o in ordens], key=lambda s: s.lower())
+        produto_sel = st.selectbox("Produto", options=produtos, key='produto_sel')
+
+        ordem = next((o for o in ordens if o['produto'] == produto_sel), None)
+        if ordem:
+            nomes = [id_to_nome.get(i, str(i)) for i in ordem['fornecedores_ids']]
+            st.write("Lista de agricultores por ordem de inscrição:")
+            for idx, nome in enumerate(nomes, start=1):
+                st.write(f"{idx}. {nome}")
+        else:
+            st.info("Ordem não encontrada para o produto selecionado.")
+
+        if st.button("Limpar ordens"):
+            st.session_state['ordens'] = None
+            st.rerun()
+    else:
+        st.info("Ainda não há ordens calculadas.")
