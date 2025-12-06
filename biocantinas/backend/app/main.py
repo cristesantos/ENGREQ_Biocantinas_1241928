@@ -12,6 +12,11 @@ def criar_fornecedor(fornecedor: schemas.FornecedorCreate):
 def listar_fornecedores():
     return storage.listar_fornecedores()
 
+# Rota fixa deve vir antes da dinâmica!
+@app.get("/fornecedores/ordem_fornecedor", response_model=List[schemas.OrdemFornecedor])
+def obter_ordem_por_produto():
+    return services.calcular_ordem_por_produto()
+
 @app.get("/fornecedores/{fid}", response_model=schemas.Fornecedor)
 def obter_fornecedor(fid: int):
     f = storage.obter_fornecedor(fid)
@@ -25,7 +30,3 @@ def aprovar_fornecedor(fid: int, body: schemas.FornecedorUpdateAprovacao):
         return services.aprovar_fornecedor(fid, body.aprovado)
     except ValueError:
         raise HTTPException(status_code=404, detail="Fornecedor não encontrado")
-
-@app.get("/fornecedores/ordem", response_model=List[schemas.OrdemFornecedor])
-def obter_ordem_por_produto():
-    return services.calcular_ordem_por_produto()
