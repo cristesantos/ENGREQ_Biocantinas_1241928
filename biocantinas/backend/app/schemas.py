@@ -6,9 +6,10 @@ from enum import Enum
 
 class Role(str, Enum):
     gestor = "gestor"
+    gestor_cantina = "gestor_cantina"
     produtor = "produtor"
+    nutricionista = "nutricionista"
     outro = "outro"
-
 
 class ProdutoFornecedor(BaseModel):
     nome: str

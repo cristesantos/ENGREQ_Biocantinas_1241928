@@ -177,7 +177,11 @@ if not st.session_state.auth_token:
         st.subheader("Criar nova conta")
         reg_username = st.text_input("Usuário (registro)", key="reg_username")
         reg_password = st.text_input("Senha (registro)", type="password", key="reg_password")
-        reg_role = st.selectbox("Papel", ["gestor", "produtor", "outro"], key="reg_role")
+        reg_role = st.selectbox(
+            "Papel",
+            ["gestor", "gestor_cantina", "produtor", "nutricionista", "outro"],
+            key="reg_role"
+        )
         if st.button("Criar conta"):
             if reg_username and reg_password:
                 register(reg_username, reg_password, reg_role)
@@ -214,6 +218,10 @@ if user_role == "gestor":
     paginas_disponiveis.append("Gestor")
 if user_role in ["produtor", "fornecedor"]:
     paginas_disponiveis.append("Produtor")
+if user_role == "gestor_cantina":
+    paginas_disponiveis.append("Gestor Cantina")
+if user_role == "nutricionista":
+    paginas_disponiveis.append("Nutricionista")
 
 pagina = st.sidebar.radio("Perfil", paginas_disponiveis)
 
@@ -238,6 +246,14 @@ elif pagina == "Gestor" and st.session_state.user_info.get("role") == "gestor":
 elif pagina == "Produtor" and st.session_state.user_info.get("role") in ["produtor", "fornecedor"]:
     from pagina_produtor import pagina_produtor
     pagina_produtor(API_URL, st.session_state.auth_token)
+
+elif pagina == "Gestor Cantina" and st.session_state.user_info.get("role") == "gestor_cantina":
+    from pagina_gestor_cantina import pagina_gestor_cantina
+    pagina_gestor_cantina(API_URL, st.session_state.auth_token)
+
+elif pagina == "Nutricionista" and st.session_state.user_info.get("role") == "nutricionista":
+    from pagina_nutricionista import pagina_nutricionista
+    pagina_nutricionista(API_URL, st.session_state.auth_token)
 
 else:
     st.error("Acesso negado: você não tem permissão para acessar esta página.")
