@@ -7,7 +7,7 @@ from datetime import date
 
 # Use a deterministic path inside the backend package directory so all processes
 # (scripts, backend, frontend when importing the package) use the same DB file.
-DB_PATH = str(Path(__file__).resolve().parents[1] / "biocantinas.db")
+DB_PATH = "biocantinas.db"
 
 def _init_db():
     conn = sqlite3.connect(DB_PATH)
