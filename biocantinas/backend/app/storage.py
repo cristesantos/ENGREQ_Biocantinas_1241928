@@ -33,6 +33,33 @@ def _init_db():
 
 _init_db()
 
+# --- Users and tokens tables ---
+def _init_auth_tables():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        role TEXT NOT NULL
+    )
+    """)
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS tokens (
+        token TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        expires_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+    conn.commit()
+    conn.close()
+
+
+_init_auth_tables()
+
 def criar_fornecedor(data: FornecedorCreate) -> Fornecedor:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -109,5 +136,72 @@ def atualizar_fornecedor(f: Fornecedor) -> None:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("UPDATE fornecedores SET nome=?, data_inscricao=?, aprovado=? WHERE id=?", (f.nome, str(f.data_inscricao), int(f.aprovado), f.id))
+    conn.commit()
+    conn.close()
+
+
+# --- Authentication storage helpers ---
+def create_user(username: str, password_hash: str, salt: str, role: str) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)", (username, password_hash, salt, role))
+    uid = c.lastrowid
+    conn.commit()
+    conn.close()
+    return {"id": uid, "username": username, "role": role}
+
+
+def get_user_by_username(username: str) -> Optional[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, username, password_hash, salt, role FROM users WHERE username=?", (username,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    uid, uname, password_hash, salt, role = row
+    return {"id": uid, "username": uname, "password_hash": password_hash, "salt": salt, "role": role}
+
+
+def get_user_by_id(uid: int) -> Optional[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, username, role FROM users WHERE id=?", (uid,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"id": row[0], "username": row[1], "role": row[2]}
+
+
+def create_token(token: str, user_id: int, expires_at: str) -> None:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO tokens (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user_id, expires_at))
+    conn.commit()
+    conn.close()
+
+
+def get_user_by_token(token: str) -> Optional[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT user_id, expires_at FROM tokens WHERE token=?", (token,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return None
+    user_id, expires_at = row
+    c.execute("SELECT id, username, role FROM users WHERE id=?", (user_id,))
+    u = c.fetchone()
+    conn.close()
+    if not u:
+        return None
+    return {"id": u[0], "username": u[1], "role": u[2], "expires_at": expires_at}
+
+
+def delete_token(token: str) -> None:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("DELETE FROM tokens WHERE token=?", (token,))
     conn.commit()
     conn.close()
