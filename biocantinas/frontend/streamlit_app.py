@@ -122,7 +122,7 @@ def login(username: str, password: str):
             if user_resp.status_code == 200:
                 st.session_state.user_info = user_resp.json()
             st.success("Login realizado com sucesso!")
-            return True
+            st.rerun()  # Recarrega para exibir a sidebar
         else:
             st.error(f"Erro no login: {response.json().get('detail', 'Usuário ou senha inválidos')}")
             return False
