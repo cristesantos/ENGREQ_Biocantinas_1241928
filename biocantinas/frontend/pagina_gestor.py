@@ -1,31 +1,35 @@
 import streamlit as st
 import requests
 
-def list_fornecedores(API_URL):
-    r = requests.get(f"{API_URL}/fornecedores")
+def list_fornecedores(API_URL, auth_token):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    r = requests.get(f"{API_URL}/fornecedores", headers=headers)
     r.raise_for_status()
     return r.json()
 
-def patch_aprovacao(API_URL, fid, aprovado: bool):
+def patch_aprovacao(API_URL, auth_token, fid, aprovado: bool):
+    headers = {"Authorization": f"Bearer {auth_token}"}
     r = requests.patch(
         f"{API_URL}/fornecedores/{fid}/aprovacao",
         json={"aprovado": aprovado},
+        headers=headers,
     )
     r.raise_for_status()
     return r.json()
 
-def get_ordem(API_URL):
-    r = requests.get(f"{API_URL}/fornecedores/ordem_fornecedor")
+def get_ordem(API_URL, auth_token):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    r = requests.get(f"{API_URL}/fornecedores/ordem_fornecedor", headers=headers)
     r.raise_for_status()
     return r.json()
 
-def pagina_gestor(API_URL):
+def pagina_gestor(API_URL, auth_token):
     st.header("Gestão de Fornecedores")
 
     if st.button("Recarregar lista"):
         st.rerun()
 
-    fornecedores = list_fornecedores(API_URL)
+    fornecedores = list_fornecedores(API_URL, auth_token)
     if fornecedores:
         st.subheader("Fornecedores")
         for f in fornecedores:
@@ -39,12 +43,12 @@ def pagina_gestor(API_URL):
             with col2:
                 if not f["aprovado"]:
                     if st.button("Aprovar", key=f"ap_{f['id']}"):
-                        patch_aprovacao(API_URL, f["id"], True)
+                        patch_aprovacao(API_URL, auth_token, f["id"], True)
                         st.rerun()
             with col3:
                 if f["aprovado"]:
                     if st.button("Reprovar", key=f"rp_{f['id']}"):
-                        patch_aprovacao(API_URL, f["id"], False)
+                        patch_aprovacao(API_URL, auth_token, f["id"], False)
                         st.rerun()
     else:
         st.info("Ainda não há fornecedores.")
@@ -57,7 +61,7 @@ def pagina_gestor(API_URL):
 
     if st.button("Calcular ordem"):
         try:
-            st.session_state['ordens'] = get_ordem(API_URL)
+            st.session_state['ordens'] = get_ordem(API_URL, auth_token)
         except requests.exceptions.HTTPError as e:
             st.error(f"Erro ao calcular ordem: {e.response.status_code} - {e.response.text}")
             st.session_state['ordens'] = []

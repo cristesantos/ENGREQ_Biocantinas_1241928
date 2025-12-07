@@ -2,12 +2,13 @@ import streamlit as st
 import requests
 from datetime import date
 
-def create_fornecedor(API_URL, payload):
-    r = requests.post(f"{API_URL}/fornecedores", json=payload)
+def create_fornecedor(API_URL, auth_token, payload):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    r = requests.post(f"{API_URL}/fornecedores", json=payload, headers=headers)
     r.raise_for_status()
     return r.json()
 
-def pagina_produtor(API_URL):
+def pagina_produtor(API_URL, auth_token):
     st.header("Inscrição de Produtor")
 
     nome = st.text_input("Nome do produtor")
@@ -70,5 +71,5 @@ def pagina_produtor(API_URL):
                 }
             ],
         }
-        novo = create_fornecedor(API_URL, payload)
+        novo = create_fornecedor(API_URL, auth_token, payload)
         st.success(f"Produtor criado com id {novo['id']} (aguarda aprovação).")

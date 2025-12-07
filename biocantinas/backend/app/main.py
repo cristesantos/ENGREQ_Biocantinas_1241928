@@ -13,12 +13,21 @@ def _get_current_user(request: Request):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header")
     parts = auth.split()
     if len(parts) != 2 or parts[0].lower() != "bearer":
+        
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header")
     token = parts[1]
     user = services.get_user_from_token(token)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     return user
+
+
+def require_roles(*allowed_roles):
+    def _checker(current_user: dict = Depends(_get_current_user)):
+        if current_user.get("role") not in allowed_roles:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operation not permitted for your role")
+        return current_user
+    return _checker
 
 
 @app.post("/auth/register", response_model=schemas.User)
@@ -47,6 +56,17 @@ def me(current_user: dict = Depends(_get_current_user)):
 def criar_fornecedor(fornecedor: schemas.FornecedorCreate):
     return storage.criar_fornecedor(fornecedor)
 
+
+@app.get("/gestor")
+def gestor_page(current_user: dict = Depends(require_roles("gestor"))):
+    return {"message": f"Olá {current_user['username']}, bem-vindo à área de Gestor."}
+
+
+@app.get("/fornecedor")
+def fornecedor_page(current_user: dict = Depends(require_roles("produtor", "fornecedor"))):
+    # aceita tanto role 'produtor' quanto 'fornecedor' se houver confusão de nomes
+    return {"message": f"Olá {current_user['username']}, área do fornecedor."}
+
 @app.get("/fornecedores", response_model=List[schemas.Fornecedor])
 def listar_fornecedores():
     return storage.listar_fornecedores()
@@ -64,7 +84,7 @@ def obter_fornecedor(fid: int):
     return f
 
 @app.patch("/fornecedores/{fid}/aprovacao", response_model=schemas.Fornecedor)
-def aprovar_fornecedor(fid: int, body: schemas.FornecedorUpdateAprovacao):
+def aprovar_fornecedor(fid: int, body: schemas.FornecedorUpdateAprovacao, current_user: dict = Depends(require_roles("gestor"))):
     try:
         return services.aprovar_fornecedor(fid, body.aprovado)
     except ValueError:
